@@ -32,6 +32,10 @@ export type AgentConfig = {
   /** Optional per-agent stream params (e.g. cacheRetention, temperature). */
   params?: Record<string, unknown>;
   tools?: AgentToolsConfig;
+  alphaFoundry?: {
+    baseUrl: string;
+    authToken?: string;
+  };
 };
 
 export type AgentsConfig = {

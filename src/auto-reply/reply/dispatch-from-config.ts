@@ -24,6 +24,7 @@ import { getReplyFromConfig } from "../reply.js";
 import type { FinalizedMsgContext } from "../templating.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import { formatAbortReplyText, tryFastAbortFromMessage } from "./abort.js";
+import { alphaFoundryReplyResolver, isAlphaFoundryBridgeAgent } from "./alpha-foundry-resolver.js";
 import { shouldBypassAcpDispatchForCommand, tryDispatchAcpReply } from "./dispatch-acp.js";
 import { shouldSkipDuplicateInbound } from "./inbound-dedupe.js";
 import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
@@ -370,7 +371,12 @@ export async function dispatchReplyFromConfig(params: {
       systemEvent: shouldRouteToOriginating,
     });
 
-    const replyResult = await (params.replyResolver ?? getReplyFromConfig)(
+    const agentId = resolveSessionAgentId({ sessionKey: ctx.SessionKey, config: cfg });
+    const effectiveResolver =
+      params.replyResolver ??
+      (isAlphaFoundryBridgeAgent(cfg, agentId) ? alphaFoundryReplyResolver : getReplyFromConfig);
+
+    const replyResult = await effectiveResolver(
       ctx,
       {
         ...params.replyOptions,

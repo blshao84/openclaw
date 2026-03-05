@@ -711,6 +711,13 @@ export const AgentEntrySchema = z
       .optional(),
     sandbox: AgentSandboxSchema,
     tools: AgentToolsSchema,
+    alphaFoundry: z
+      .object({
+        baseUrl: z.string(),
+        authToken: z.string().optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
