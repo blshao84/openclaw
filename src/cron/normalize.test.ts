@@ -163,6 +163,22 @@ describe("normalizeCronJobCreate", () => {
     expectAnnounceDeliveryTarget(delivery, { channel: "telegram", to: "7200373102" });
   });
 
+  it("normalizes direct delivery mode and channel", () => {
+    const normalized = normalizeCronJobCreate({
+      name: "direct delivery",
+      enabled: true,
+      schedule: { kind: "cron", expr: "* * * * *" },
+      sessionTarget: "isolated",
+      wakeMode: "now",
+      payload: { kind: "agentTurn", message: "hi" },
+      delivery: { mode: " DIRECT ", channel: " TeLeGrAm ", to: " 123 " },
+    }) as unknown as Record<string, unknown>;
+    const delivery = normalized.delivery as Record<string, unknown>;
+    expect(delivery.mode).toBe("direct");
+    expect(delivery.channel).toBe("telegram");
+    expect(delivery.to).toBe("123");
+  });
+
   it("coerces ISO schedule.at to normalized ISO (UTC)", () => {
     expectNormalizedAtSchedule({ at: "2026-01-12T18:00:00" });
   });

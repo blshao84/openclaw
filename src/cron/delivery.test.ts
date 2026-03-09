@@ -67,6 +67,18 @@ describe("resolveCronDeliveryPlan", () => {
     expect(plan.to).toBe("https://example.invalid/cron");
   });
 
+  it("resolves mode=direct with requested=true and channel routing", () => {
+    const plan = resolveCronDeliveryPlan(
+      makeJob({
+        delivery: { mode: "direct", channel: "telegram", to: "123" },
+      }),
+    );
+    expect(plan.mode).toBe("direct");
+    expect(plan.requested).toBe(true);
+    expect(plan.channel).toBe("telegram");
+    expect(plan.to).toBe("123");
+  });
+
   it("threads delivery.accountId when explicitly configured", () => {
     const plan = resolveCronDeliveryPlan(
       makeJob({

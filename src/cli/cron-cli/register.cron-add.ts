@@ -87,6 +87,7 @@ export function registerCronAddCommand(cron: Command) {
       .option("--timeout-seconds <n>", "Timeout seconds for agent jobs")
       .option("--light-context", "Use lightweight bootstrap context for agent jobs", false)
       .option("--announce", "Announce summary to a chat (subagent-style)", false)
+      .option("--direct", "Forward raw output to channel (no LLM rephrasing)", false)
       .option("--deliver", "Deprecated (use --announce). Announces a summary to a chat.")
       .option("--no-deliver", "Disable announce delivery and skip main-session summary")
       .option("--channel <channel>", `Delivery channel (${getCronChannelOptions()})`, "last")
@@ -151,10 +152,11 @@ export function registerCronAddCommand(cron: Command) {
               : undefined;
 
           const hasAnnounce = Boolean(opts.announce) || opts.deliver === true;
+          const hasDirect = Boolean(opts.direct);
           const hasNoDeliver = opts.deliver === false;
-          const deliveryFlagCount = [hasAnnounce, hasNoDeliver].filter(Boolean).length;
+          const deliveryFlagCount = [hasAnnounce, hasDirect, hasNoDeliver].filter(Boolean).length;
           if (deliveryFlagCount > 1) {
-            throw new Error("Choose at most one of --announce or --no-deliver");
+            throw new Error("Choose at most one of --announce, --direct, or --no-deliver");
           }
 
           const payload = (() => {
@@ -207,10 +209,10 @@ export function registerCronAddCommand(cron: Command) {
             throw new Error("Isolated jobs require --message (agentTurn).");
           }
           if (
-            (opts.announce || typeof opts.deliver === "boolean") &&
+            (opts.announce || opts.direct || typeof opts.deliver === "boolean") &&
             (sessionTarget !== "isolated" || payload.kind !== "agentTurn")
           ) {
-            throw new Error("--announce/--no-deliver require --session isolated.");
+            throw new Error("--announce/--direct/--no-deliver require --session isolated.");
           }
 
           const accountId =
@@ -224,11 +226,13 @@ export function registerCronAddCommand(cron: Command) {
 
           const deliveryMode =
             sessionTarget === "isolated" && payload.kind === "agentTurn"
-              ? hasAnnounce
-                ? "announce"
-                : hasNoDeliver
-                  ? "none"
-                  : "announce"
+              ? hasDirect
+                ? "direct"
+                : hasAnnounce
+                  ? "announce"
+                  : hasNoDeliver
+                    ? "none"
+                    : "announce"
               : undefined;
 
           const nameRaw = typeof opts.name === "string" ? opts.name : "";

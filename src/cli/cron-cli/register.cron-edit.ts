@@ -55,6 +55,7 @@ export function registerCronEditCommand(cron: Command) {
       .option("--light-context", "Enable lightweight bootstrap context for agent jobs")
       .option("--no-light-context", "Disable lightweight bootstrap context for agent jobs")
       .option("--announce", "Announce summary to a chat (subagent-style)")
+      .option("--direct", "Forward raw output to channel (no LLM rephrasing)")
       .option("--deliver", "Deprecated (use --announce). Announces a summary to a chat.")
       .option("--no-deliver", "Disable announce delivery")
       .option("--channel <channel>", `Delivery channel (${getCronChannelOptions()})`)
@@ -91,8 +92,11 @@ export function registerCronEditCommand(cron: Command) {
               "Isolated jobs cannot use --system-event; use --message or --session main.",
             );
           }
-          if (opts.announce && typeof opts.deliver === "boolean") {
-            throw new Error("Choose --announce or --no-deliver (not multiple).");
+          const deliveryModeFlags = [opts.announce, opts.direct, opts.deliver === false].filter(
+            Boolean,
+          ).length;
+          if (deliveryModeFlags > 1) {
+            throw new Error("Choose at most one of --announce, --direct, or --no-deliver.");
           }
           const staggerRaw = typeof opts.stagger === "string" ? opts.stagger.trim() : "";
           const useExact = Boolean(opts.exact);
@@ -213,7 +217,7 @@ export function registerCronEditCommand(cron: Command) {
             ? Number.parseInt(String(opts.timeoutSeconds), 10)
             : undefined;
           const hasTimeoutSeconds = Boolean(timeoutSeconds && Number.isFinite(timeoutSeconds));
-          const hasDeliveryModeFlag = opts.announce || typeof opts.deliver === "boolean";
+          const hasDeliveryModeFlag = opts.announce || opts.direct || typeof opts.deliver === "boolean";
           const hasDeliveryTarget = typeof opts.channel === "string" || typeof opts.to === "string";
           const hasDeliveryAccount = typeof opts.account === "string";
           const hasBestEffort = typeof opts.bestEffortDeliver === "boolean";
@@ -253,7 +257,11 @@ export function registerCronEditCommand(cron: Command) {
           if (hasDeliveryModeFlag || hasDeliveryTarget || hasDeliveryAccount || hasBestEffort) {
             const delivery: Record<string, unknown> = {};
             if (hasDeliveryModeFlag) {
-              delivery.mode = opts.announce || opts.deliver === true ? "announce" : "none";
+              delivery.mode = opts.direct
+                ? "direct"
+                : opts.announce || opts.deliver === true
+                  ? "announce"
+                  : "none";
             } else if (hasBestEffort) {
               // Back-compat: toggling best-effort alone has historically implied announce mode.
               delivery.mode = "announce";

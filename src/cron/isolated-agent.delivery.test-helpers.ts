@@ -49,7 +49,7 @@ export async function runTelegramAnnounceTurn(params: {
   storePath: string;
   deps: CliDeps;
   delivery: {
-    mode: "announce";
+    mode: "announce" | "direct";
     channel: string;
     to?: string;
     bestEffort?: boolean;
